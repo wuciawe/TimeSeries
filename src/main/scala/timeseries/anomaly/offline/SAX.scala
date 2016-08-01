@@ -38,7 +38,7 @@ object SAX {
       def constructSAX(str: String): HashMap[String, Int] = {
         var frequency = HashMap.empty[String, Int]
         val len = str.length
-        for { i <- 0 until len; i + chunk <= len} {
+        for { i <- 0 until len; if i + chunk <= len} {
           val c = str.substring(i, i + chunk)
           frequency = frequency + (c -> (frequency.getOrElse(c, 0) + 1))
         }
@@ -48,7 +48,7 @@ object SAX {
       var lagMaps = HashMap.empty[Int, HashMap[String, Int]]
       var futMaps = HashMap.empty[Int, HashMap[String, Int]]
       val cache = collection.mutable.HashMap.empty[String, HashMap[String, Int]]
-      for { i <- sax.indices; i >= window && i <= sax.length - window } {
+      for { i <- sax.indices; if i >= window && i <= sax.length - window } {
         val lagMap = {
           val str = sax.substring(i - window, i)
           cache.get(str) match {
