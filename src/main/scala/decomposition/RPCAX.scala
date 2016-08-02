@@ -13,6 +13,7 @@ object RPCAX {
     var Y = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
 
     val mu = M.getColumnDimension * M.getRowDimension / (4 * M.getData.foldLeft(0.0)((s, arr) => s + arr.sum))
+    val lambda = 1 / math.sqrt(math.max(M.getColumnDimension, M.getRowDimension))
     val tol = 1e-7 * M.getFrobeniusNorm
     var diff = 2 * tol
     var iter = 0
@@ -27,7 +28,7 @@ object RPCAX {
 
     def updateS(muiY: RealMatrix) = {
       val xl = M.subtract(L).add(muiY).getData
-      softThreshold(xl, 1 / mu)
+      softThreshold(xl, lambda / mu)
       S = MatrixUtils.createRealMatrix(xl)
     }
 
