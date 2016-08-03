@@ -6,7 +6,7 @@ object RPCAX {
 
   private val MAX_ITERS = 228
 
-  def decompose(data: IndexedSeq[IndexedSeq[Double]], lpenalty: Double, spenalty: Double) = {
+  def decompose(data: IndexedSeq[IndexedSeq[Double]]) = {
     val M = MatrixUtils.createRealMatrix(data.toArray.map(_.toArray))
     var L = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
     var S = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
@@ -56,7 +56,7 @@ object RPCAX {
   private def softThreshold(x: Array[Array[Double]], penalty: Double): Unit =
     x.indices.foreach { i =>
       x(i).indices.foreach { j =>
-        x(i)(j) = math.signum(x(i)(j) * math.max(math.abs(x(i)(j)) - penalty, 0))
+        x(i)(j) = math.signum(x(i)(j)) * math.max(math.abs(x(i)(j)) - penalty, 0)
       }
     }
 

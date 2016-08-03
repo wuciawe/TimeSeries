@@ -74,7 +74,7 @@ object RPCA {
   private def softThreshold(x: Array[Array[Double]], penalty: Double): Unit =
     x.indices.foreach { i =>
       x(i).indices.foreach { j =>
-        x(i)(j) = math.signum(x(i)(j) * math.max(math.abs(x(i)(j)) - penalty, 0))
+        x(i)(j) = math.signum(x(i)(j)) * math.max(math.abs(x(i)(j)) - penalty, 0)
       }
     }
 
