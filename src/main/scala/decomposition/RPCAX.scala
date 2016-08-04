@@ -4,16 +4,16 @@ import org.apache.commons.math3.linear.{MatrixUtils, RealMatrix, SingularValueDe
 
 object RPCAX {
 
-  private val MAX_ITERS = 228
+  private val MAX_ITERS = 128
 
-  def decompose(data: IndexedSeq[IndexedSeq[Double]]) = {
+  def decompose(data: IndexedSeq[IndexedSeq[Double]], lambdaCoef: Double = 2.368) = {
     val M = MatrixUtils.createRealMatrix(data.toArray.map(_.toArray))
     var L = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
     var S = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
     var Y = MatrixUtils.createRealMatrix(M.getRowDimension, M.getColumnDimension)
 
-    val mu = M.getColumnDimension * M.getRowDimension / (4 * M.getData.foldLeft(0.0)((s, arr) => s + arr.sum))
-    val lambda = 1 / math.sqrt(math.max(M.getColumnDimension, M.getRowDimension))
+    val mu = M.getColumnDimension * M.getRowDimension / (4 * M.getData.foldLeft(0.0)((s, arr) => s + arr.foldLeft(0.0)((s, e) => s + math.abs(e))))
+    val lambda = lambdaCoef / math.sqrt(math.max(M.getColumnDimension, M.getRowDimension))
     val tol = 1e-7 * M.getFrobeniusNorm
     var diff = 2 * tol
     var iter = 0
@@ -37,7 +37,7 @@ object RPCAX {
     }
 
     while(diff > tol && iter < MAX_ITERS) {
-      val muiY = Y.scalarMultiply( 1 / mu)
+      val muiY = Y.scalarMultiply(1 / mu)
       updateL(muiY)
       updateS(muiY)
       updateY()

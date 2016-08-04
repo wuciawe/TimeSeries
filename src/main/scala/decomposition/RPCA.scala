@@ -5,7 +5,7 @@ import timeseries.util.MeanStddev
 
 object RPCA {
 
-  private val MAX_ITERS = 228
+  private val MAX_ITERS = 128
 
   def decompose(data: IndexedSeq[IndexedSeq[Double]], lpenalty: Double, spenalty: Double) = {
     val X = MatrixUtils.createRealMatrix(data.toArray.map(_.toArray))
@@ -13,7 +13,7 @@ object RPCA {
     var S = MatrixUtils.createRealMatrix(X.getRowDimension, X.getColumnDimension)
     var E = MatrixUtils.createRealMatrix(X.getRowDimension, X.getColumnDimension)
 
-    var mu = X.getColumnDimension * X.getRowDimension / (4 * X.getData.map(_.map(math.abs).sum).sum)
+    var mu = (4 * X.getData.foldLeft(0.0)((s, arr) => s + arr.foldLeft(0.0)((s, e) => s + math.abs(e)))) / (X.getColumnDimension * X.getRowDimension)
     var objPrev = 0.5 * Math.pow(X.getFrobeniusNorm, 2)
     var obj = objPrev
     val tol = 1e-8 * objPrev
@@ -35,21 +35,15 @@ object RPCA {
       val xl = X.subtract(L).getData
       softThreshold(xl, SPenalty)
       S = MatrixUtils.createRealMatrix(xl)
-      xl.map(_.map(math.abs).sum).sum * SPenalty
+      xl.foldLeft(0.0)((s, arr) => s + arr.foldLeft(0.0)((s, e) => s + math.abs(e))) * SPenalty
     }
 
     def computeE = {
       E = X.subtract(L).subtract(S)
-      val norm = E.getFrobeniusNorm
-      Math.pow(norm, 2)
+      Math.pow(E.getFrobeniusNorm, 2)
     }
 
-    def computeDynamicMu = {
-      val m = E.getRowDimension
-      val n = E.getColumnDimension
-      val mu = MeanStddev.stddev(E.getData.flatten) * math.sqrt(2 * math.max(m, n))
-      math.max(.01, mu)
-    }
+    def computeDynamicMu = MeanStddev.stddev(E.getData.flatten) * math.sqrt(2 * math.max(E.getRowDimension, E.getColumnDimension))
 
     while(diff > tol && iter < MAX_ITERS) {
       val nuclearNorm = computeS
