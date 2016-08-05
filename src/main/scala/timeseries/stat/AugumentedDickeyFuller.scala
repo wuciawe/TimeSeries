@@ -1,6 +1,7 @@
 package timeseries.stat
 
 import org.apache.commons.math3.linear.MatrixUtils
+import timeseries.stat.Approx.RuleFV
 //import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import regression.RidgeRegression
 import timeseries.util.Difference
@@ -20,9 +21,15 @@ object AugumentedDickeyFuller {
   private[this] val tableT = Vector[Double](25, 50, 100, 250, 500, 1e5)
   private[this] val tablep = Vector(.01, .025, .5, .1, .9, .95, .975, .99)
 
-  def test(data: Vector[Double]): ADFResult = test(data, math.cbrt(data.length - 1).floor.toInt)
+  sealed trait Alternative
+  case object Stationary extends Alternative
+  case object Explosive extends Alternative
 
-  def test(data: Vector[Double], lag: Int): ADFResult = {
+  def test(data: IndexedSeq[Double]): Double = test(data, Stationary)
+
+  def test(data: IndexedSeq[Double], alternative: Alternative): Double = test(data, alternative, math.cbrt(data.length - 1).floor.toInt)
+
+  def test(data: IndexedSeq[Double], alternative: Alternative, lag: Int): Double = {
     require(lag >= 0)
 
     val y = Difference.diff(data, 1)
@@ -54,12 +61,21 @@ object AugumentedDickeyFuller {
     val summary = regression.summary.get
     val t = summary.coefficients(0) / summary.standarderrors(0)
 
-    if (t <= PVALUE_THRESHOLD) {
-      Stationary // reject the null hypothesis
-    } else {
-      NonStationary
+    val tableipl = (0 until tablen).map{ i => Approx.approx(tableT, Some(table.map(_(i))), Some(Vector(n)), rule = RuleFV)._2.head }
+    val interpol = Approx.approx(tableipl, Some(tablep), Some(Vector(t)), rule = RuleFV)._2.head
+    if(Approx.approx(tableipl, Some(tablep), Some(Vector(t)))._2.head.isNaN) {
+      if(interpol == tablep.min) println(s"p-value smaller than printed p-value")
+      else println(s"p-value greater than printed p-value")
     }
+
+    alternative match {
+      case Stationary => interpol
+      case Explosive => 1 - interpol
+    }
+
   }
+
+  def isStationary(data: IndexedSeq[Double], p: Double = 0.05): Boolean = test(data) < p
 
   private[this] def embed(data: IndexedSeq[Double], dim: Int = 1): Array[Array[Double]] = {
     val res = Array.ofDim[Double](data.length - dim + 1, dim)
@@ -72,7 +88,3 @@ object AugumentedDickeyFuller {
   }
 
 }
-
-sealed trait ADFResult
-case object Stationary extends ADFResult
-case object NonStationary extends ADFResult
